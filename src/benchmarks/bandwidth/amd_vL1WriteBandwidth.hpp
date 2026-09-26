@@ -5,11 +5,11 @@
 namespace benchmark {
     namespace amd {
         /**
-         * @brief Measure achievable L1 read bandwidth on AMD GPUs with optimal configuration search including block sweep.
+         * @brief Measure vL1 write bandwidth of a single AMD CU (one block pinned to CU 0), sweeping threads and repetitions.
          *
          * @param arraySizeBytes Size of the array in bytes used for the test.
          * @return Bandwidth in GiB/s and the optimal configuration.
          */
-        CacheBandwidthResult measureL1ReadBandwidthBlockSweep(size_t arraySizeBytes);
+        CacheBandwidthResult measurevL1WriteBandwidth(size_t arraySizeBytes);
     }
 }
