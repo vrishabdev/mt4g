@@ -9,9 +9,15 @@
 #include <tuple>
 
 static constexpr auto WARMUP_REPS = 8;
-static constexpr auto MS_PER_SECOND = 1000.0; // ms
 
-__global__ void constantL1ReadBandwidthKernel(uint32_t* __restrict__ dst, size_t totalElements, size_t reps)
+
+
+static constexpr auto MAX_ALLOWED_SIZE = MAX_ALLOWED_INDEX * sizeof(uint32_t);// 63 KiB of the 64 KiB constant array
+
+// Constant L1 bandwidth benchmark for a single SM. Uses ld.const on the shared
+// constant array; the caller provides a working set that fits in constant L1.
+// Scalar loads are used because the uint32_t array has no guaranteed 16-byte alignment.
+__global__ void constantL1ReadBandwidthKernel(uint32_t* __restrict__ dst, uint64_t* __restrict__ timing_result, size_t elementsPerThread, size_t reps)
 {
     const uint32_t tid = threadIdx.x;
     const size_t alignOffset = (reinterpret_cast<uintptr_t>(arr16384AscStride0) % sizeof(uint2)) / sizeof(uint32_t);

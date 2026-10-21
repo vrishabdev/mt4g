@@ -4,18 +4,21 @@
 #include <tuple>
 #include <vector>
 
-static constexpr auto WARMUP_REPS = 128;
-static constexpr auto MS_PER_SECOND = 1000.0; // ms
+static constexpr auto WARMUP_REPS = 8;
 
-static constexpr size_t LOADS_PER_GROUP = 8;
-static constexpr size_t GROUP_LOAD_STRIDE = 0;
 
-__global__ void textureReadBandwidthKernel([[maybe_unused]] hipTextureObject_t tex, uint4* dst, size_t totalElements, size_t reps, [[maybe_unused]] size_t groupLoadStride)
+
+// Texture cache read bandwidth benchmark for a single SM. Mirrors the L1 benchmark 
+// but measures the texture fetch path (tex1Dfetch) instead of normal global loads.
+__global__ void textureReadBandwidthKernel([[maybe_unused]] hipTextureObject_t tex, uint32_t* __restrict__ dst, uint64_t* __restrict__ timing_result, size_t elementsPerThread, size_t reps)
 {
-    uint4 dummy {0, 0, 0, 0};
+    const uint32_t tid = threadIdx.x;
+    const size_t base = static_cast<size_t>(tid) * elementsPerThread;
 
-    #ifdef __HIP_PLATFORM_NVIDIA__
-    for (size_t rep = 0; rep < reps; rep += LOADS_PER_GROUP)
+    uint32_t dummy = 0;
+
+    // Warm up the texture / unified cache
+    for (size_t rep = 0; rep < WARMUP_REPS; ++rep)
     {
         for (size_t i = threadIdx.x; i < totalElements; i += blockDim.x)
         {

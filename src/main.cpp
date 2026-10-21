@@ -320,12 +320,24 @@ int main(int argc, char* argv[]) {
 
         if (l1Size.confidence > VALIDITY_THRESHOLD) {
             
-            std::cout << "[L1] Read Bandwidth per CU / MultiProcessor" << std::endl;
-            CacheBandwidthResult l1ReadBandwidth = timed(util::isAMD() ? "amd_vL1ReadBandwidth" : "l1ReadBandwidth", [&] { return benchmark::measureL1ReadBandwidthSweep(l1Size.size / 2); });
+            std::cout << "[L1] Read Bandwidth per CU / MultiProcessor with optimal search" << std::endl;
+            CacheBandwidthResult l1ReadBandwidth;
+            if (util::isAMD()) 
+            {
+                l1ReadBandwidth = timed("amd_l1ReadBandwidth", [&] { return benchmark::amd::measureL1ReadBandwidthSweep(l1Size.size / 2); });
+            } else {
+                l1ReadBandwidth = timed("l1ReadBandwidth", [&] { return benchmark::measureL1ReadBandwidthSweep(l1Size.size / 2); });
+            }
             result["memory"]["l1"]["readBandwidthPerCU"] = l1ReadBandwidth;
 
-            std::cout << "[L1] Write Bandwidth per CU / MultiProcessor" << std::endl;
-            CacheBandwidthResult l1WriteBandwidth = timed(util::isAMD() ? "amd_vL1WriteBandwidth" : "l1WriteBandwidth", [&] { return benchmark::measureL1WriteBandwidthSweep(l1Size.size / 2); });
+            std::cout << "[L1] Write Bandwidth per CU / MultiProcessor with optimal search" << std::endl;
+            CacheBandwidthResult l1WriteBandwidth;
+            if (util::isAMD())
+            {
+                l1WriteBandwidth = timed("amd_l1WriteBandwidth", [&] { return benchmark::amd::measureL1WriteBandwidthSweep(l1Size.size / 2); });
+            } else {
+                l1WriteBandwidth = timed("l1WriteBandwidth", [&] { return benchmark::measureL1WriteBandwidthSweep(l1Size.size / 2); });
+            }
             result["memory"]["l1"]["writeBandwidthPerCU"] = l1WriteBandwidth;
 
             if (opts.rawData || opts.graphs)
@@ -586,8 +598,15 @@ int main(int argc, char* argv[]) {
         size_t constantL15BandwidthBytes = constantL15Size.confidence > VALIDITY_THRESHOLD
             ? constantL15Size.size / 2
             : 32 * KiB;
+        // Stride by one fetch granularity per load so each access hits a fresh cache line.
+        // This avoids L1 reuse and isolates L1.5 bandwidth, matching the Constant L1.5
+        // Size and Latency benchmarks.
+        size_t constantL15BandwidthStride = constantL15FetchGranularity.confidence > VALIDITY_THRESHOLD
+            ? constantL15FetchGranularity.size
+            : MIN_EXPECTED_LINE_SIZE;
+
         std::cout << "[Constant] L1.5 Read Bandwidth per CU / MultiProcessor" << std::endl;
-        CacheBandwidthResult constantL15ReadBandwidth = timed("nvidia_constantL15ReadBandwidth", [&] { return benchmark::nvidia::measureConstantL15ReadBandwidthSweep(constantL15BandwidthBytes); });
+        CacheBandwidthResult constantL15ReadBandwidth = timed("nvidia_constantL15ReadBandwidth", [&] { return benchmark::nvidia::measureConstantL15ReadBandwidthSweep(constantL15BandwidthBytes, constantL15BandwidthStride); });
         result["memory"]["constant"]["l1.5"]["readBandwidthPerCU"] = constantL15ReadBandwidth;
 
         if (opts.rawData || opts.graphs)

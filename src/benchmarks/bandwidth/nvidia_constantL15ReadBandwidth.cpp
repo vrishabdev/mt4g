@@ -8,7 +8,8 @@
 #include <tuple>
 
 static constexpr auto WARMUP_REPS = 8;
-static constexpr auto MS_PER_SECOND = 1000.0; // ms
+
+
 
 static constexpr size_t STRIDE_BYTES = 64;
 static constexpr size_t STRIDE_ELEMENTS = STRIDE_BYTES / sizeof(uint32_t);
@@ -89,7 +90,7 @@ namespace benchmark
 {
     namespace nvidia
     {
-        CacheBandwidthResult measureConstantL15ReadBandwidthSweep(size_t arraySizeBytes)
+        CacheBandwidthResult measureConstantL15ReadBandwidthSweep(size_t arraySizeBytes, size_t constantFetchGranularityBytes)
         {
             auto stream = util::createStreamForCU(0);
 
